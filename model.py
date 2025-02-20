@@ -27,24 +27,26 @@ class Model(nn.Module):
 
         self.output_layer = nn.Linear(FEATURE_DIMENSION, VOCAB_SIZE)
 
-    def forward(self, input_text, target_text=None, input_mask=None, target_mask=None):
-        # 嵌入和位置编码
-        input_tensor = self.positional_encoding(self.embedding(input_text))
-        if target_text is not None:
-            target_tensor = self.positional_encoding(self.embedding(target_text))
-        else:
+    def forward(self, input_token, target_token=None, input_mask=None, target_mask=None, use_encoder=True):
+        # 词嵌入和位置编码
+        input_tensor = self.positional_encoding(self.embedding(input_token))
+        if target_token is not None:  # 训练模式 (Seq2Seq)
+            target_tensor = self.positional_encoding(self.embedding(target_token))
+        else:  # 推理模式 (自回归)
             # 在推理阶段，初始化目标序列为开始标记（假设为[0]）
-            target = torch.zeros_like(input_tensor[:, :1])  # 假设开始标记的索引为0
-            target_tensor = self.positional_encoding(self.embedding(target))
+            target_tensor = torch.zeros_like(input_token[:, :1])  # 仅保留启示Token
+            target_tensor = self.positional_encoding(self.embedding(target_tensor))
 
-        # 编码器部分
-        memory = input_tensor
-        for layer in self.encoder_layers:
-            memory = layer(memory, input_mask)
+        # 编码器处理输入 (如果是Seq2Seq)
+        memory = None
+        if use_encoder:
+            memory = input_tensor
+            for layer in self.encoder_layers:
+                memory = layer(memory, input_mask)
 
-        # 解码器部分
+        # 解码器部分处理目标序列(兼容两种模式)
         for layer in self.decoder_layers:
-            target_tensor = layer(target_tensor, memory, target_mask, input_mask)
+            target_tensor = layer(target_tensor, memory if self.use_encoder else target_tensor, target_mask, input_mask)
 
         # 输出层
         output = self.output_layer(target_tensor)

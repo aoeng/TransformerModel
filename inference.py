@@ -10,6 +10,7 @@ class Inference:
         self.tokenizer = tokenizer
         self.max_length = max_length
 
+    # 贪心搜索
     def greedy_decode(self, input_text, max_new_tokens=50):
         self.model.eval()
         input_ids = self.tokenizer.encode(input_text, return_tensors="pt").to(self.device)
@@ -26,6 +27,7 @@ class Inference:
 
         return self.tokenizer.decode(input_ids.squeeze(), skip_special_tokens=True)
 
+    # Top-K采样
     def sample_top_k(self, input_text, k=10, max_new_tokens=50, temperature=1.0):
         self.model.eval()
         input_ids = self.tokenizer.encode(input_text, return_tensors="pt").to(self.device)
@@ -43,6 +45,7 @@ class Inference:
 
         return self.tokenizer.decode(input_ids.squeeze(), skip_special_tokens=True)
 
+    # Top-P采样
     def sample_top_p(self, input_text, p=0.9, max_new_tokens=50, temperature=1.0):
         self.model.eval()
         input_ids = self.tokenizer.encode(input_text, return_tensors="pt").to(self.device)
